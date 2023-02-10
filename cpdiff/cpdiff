@@ -14,7 +14,7 @@ Create a cpdiff.conf.json with dev_system, repo_path and other optional info:
 {
   "dev_system": "abhijith@10.81.78.230",
   "repo_path": "/workspace/",
-  "replace_paths_patterns": [
+  "replace_path_patterns": [
     {
       "source": "test",
       "destination": "/tmp"
@@ -32,7 +32,7 @@ EOF
 
 function getDestinationPath(){
     file=$1
-    jq -c '.replace_paths_patterns[]' ${CPDIFF_JSON_CONF_FILE} | while read i;
+    jq -c '.replace_path_patterns[]' ${CPDIFF_JSON_CONF_FILE} | while read i;
     do
         src_path_pattern=$(echo ${i} | jq -r ".source")
         dest_path_pattern=$(echo ${i} | jq -r ".destination")

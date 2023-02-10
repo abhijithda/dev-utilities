@@ -1,5 +1,5 @@
 {
-  "replace_paths_patterns": [
+  "replace_path_patterns": [
     {
       "source": "test",
       "destination": "/tmp"
