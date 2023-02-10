@@ -32,7 +32,8 @@ EOF
 
 function getDestinationPath(){
     file=$1
-    jq -c '.replace_path_patterns[]' ${CPDIFF_JSON_CONF_FILE} | while read i;
+    dest_path=${file}
+    dest_path=$(jq -c '.replace_path_patterns[]' ${CPDIFF_JSON_CONF_FILE} | while read i;
     do
         src_path_pattern=$(echo ${i} | jq -r ".source")
         dest_path_pattern=$(echo ${i} | jq -r ".destination")
@@ -45,8 +46,8 @@ function getDestinationPath(){
             echo `echo ${file} | sed s%${src_path_pattern}%${dest_path_pattern}%`
             break
         fi
-    done
-    echo $file
+    done)
+    echo ${dest_path}
 }
 
 if [ "$1" == "-h" ]
@@ -79,7 +80,10 @@ fi
 my_dev=$(jq ".dev_system" -r ${CPDIFF_JSON_CONF_FILE})
 if [ "${my_dev}" == "null" ]
 then
-    files=$(cd $repo_path; git diff --name-only FETCH_HEAD)
+    # In case if ${repo_path} doesn't exist on current system, then command
+    # will fail and copy files from current directory. (OK for me!)
+    pushd ${repo_path};
+    files=$(git diff --name-only FETCH_HEAD)
 else
     files=$(ssh $my_dev "cd $repo_path; git diff --name-only FETCH_HEAD")
 fi
@@ -90,8 +94,6 @@ then
     exit 0;
 fi
 
-# In case if ${repo_path} doesn't exist on current system, then command will fail and copy files from current directory. (OK for me!)
-pushd ${repo_path};
 for file in ${files[@]}; do
     echo "Copying file: ${file}..."
     dest_path=$(getDestinationPath "${file}")
@@ -104,4 +106,7 @@ for file in ${files[@]}; do
         scp ${my_dev}:${repo_path}/${file} ${dest_path}
     fi
 done
-popd;
+if [ "${my_dev}" == "null" ]
+then
+    popd;
+fi
