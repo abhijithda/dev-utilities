@@ -13,16 +13,16 @@ Create a cpdiff.conf.json with dev_system, repo_path and other optional info:
 # cat cpdiff.conf.json
 {
   "dev_system": "abhijith@10.81.78.230",
-  "repo_path": "/home/abhijith/workspace/sfnas",
-  "replace_paths": [
+  "repo_path": "/workspace/",
+  "replace_paths_patterns": [
     {
       "source": "test",
-      "destination": "/tmp/"
-    }
+      "destination": "/tmp"
+    },
     {
       "source": "unix/common",
       "destination": "/opt/VRTSnas"
-    },
+    }
   ]
 }
 
@@ -32,7 +32,7 @@ EOF
 
 function getDestinationPath(){
     file=$1
-    jq -c '.replace_paths[]' ${CPDIFF_JSON_CONF_FILE} | while read i;
+    jq -c '.replace_paths_patterns[]' ${CPDIFF_JSON_CONF_FILE} | while read i;
     do
         src_path_pattern=$(echo ${i} | jq -r ".source")
         dest_path_pattern=$(echo ${i} | jq -r ".destination")
@@ -70,10 +70,13 @@ then
     echo ""
     exit 1
 fi
+repo_path=$(jq ".repo_path" -r ${CPDIFF_JSON_CONF_FILE})
+if [ "${repo_path}" == "null" ]
+then
+    repo_path="."
+fi
 
 my_dev=$(jq ".dev_system" -r ${CPDIFF_JSON_CONF_FILE})
-repo_path=$(jq ".repo_path" -r ${CPDIFF_JSON_CONF_FILE})
-
 if [ "${my_dev}" == "null" ]
 then
     files=$(cd $repo_path; git diff --name-only FETCH_HEAD)
@@ -87,6 +90,8 @@ then
     exit 0;
 fi
 
+# In case if ${repo_path} doesn't exist on current system, then command will fail and copy files from current directory. (OK for me!)
+pushd ${repo_path};
 for file in ${files[@]}; do
     echo "Copying file: ${file}..."
     dest_path=$(getDestinationPath "${file}")
@@ -94,8 +99,9 @@ for file in ${files[@]}; do
 
     if [ "${my_dev}" == "null" ]
     then
-        cp ${repo_path}/${file} ${dest_path}
+        cp ${file} ${dest_path};
     else
         scp ${my_dev}:${repo_path}/${file} ${dest_path}
     fi
 done
+popd;

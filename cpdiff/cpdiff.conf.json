@@ -1,7 +1,5 @@
 {
-  "dev_system": "abhijith@10.81.78.230",
-  "repo_path": "/workspace/",
-  "replace_paths": [
+  "replace_paths_patterns": [
     {
       "source": "test",
       "destination": "/tmp"
