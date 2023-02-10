@@ -1,0 +1,14 @@
+{
+  "dev_system": "abhijith@10.81.78.230",
+  "repo_path": "/workspace/",
+  "replace_paths": [
+    {
+      "source": "test",
+      "destination": "/tmp"
+    },
+    {
+      "source": "unix/common",
+      "destination": "/opt/VRTSnas"
+    }
+  ]
+}

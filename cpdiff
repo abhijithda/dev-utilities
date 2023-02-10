@@ -1,0 +1,101 @@
+#!/bin/bash
+
+# cpdiff.sh is an utility to copy files that are modified from dev system to
+#   test system for testing. 
+# Prerequisites: The repo should be a git repository
+
+function usage(){
+    cat<<"EOF"
+cpdiff - copy files with diff from a git repo on dev system to the current system.
+
+Create a cpdiff.conf.json with dev_system, repo_path and other optional info:
+
+# cat cpdiff.conf.json
+{
+  "dev_system": "abhijith@10.81.78.230",
+  "repo_path": "/home/abhijith/workspace/sfnas",
+  "replace_paths": [
+    {
+      "source": "test",
+      "destination": "/tmp/"
+    }
+    {
+      "source": "unix/common",
+      "destination": "/opt/VRTSnas"
+    },
+  ]
+}
+
+EOF
+}
+
+
+function getDestinationPath(){
+    file=$1
+    jq -c '.replace_paths[]' ${CPDIFF_JSON_CONF_FILE} | while read i;
+    do
+        src_path_pattern=$(echo ${i} | jq -r ".source")
+        dest_path_pattern=$(echo ${i} | jq -r ".destination")
+        if [[ -z "${src_path_pattern}" ]]
+        then
+            continue;
+        fi
+        if [[ ${file} == *${src_path_pattern}* ]]
+        then
+            echo `echo ${file} | sed s%${src_path_pattern}%${dest_path_pattern}%`
+            break
+        fi
+    done
+    echo $file
+}
+
+if [ "$1" == "-h" ]
+then
+    usage;
+    exit 0;
+fi
+
+if [ -z ${CPDIFF_JSON_CONF_FILE} ]; then
+    echo "WARNING: CPDIFF_JSON_CONF_FILE ENV variable not set.";
+    echo "Assuming default config file."
+    echo "To customize, set CPDIFF_JSON_CONF_FILE=<conf-file.json>";
+    echo "CPDIFF_JSON_CONF_FILE=\"cpdiff.conf.json\"";
+    echo;
+    CPDIFF_JSON_CONF_FILE="cpdiff.conf.json"
+fi
+
+if [ ! -e ${CPDIFF_JSON_CONF_FILE} ]
+then
+    echo "ERROR: Conf file doesn't exist.";
+    echo ""
+    exit 1
+fi
+
+my_dev=$(jq ".dev_system" -r ${CPDIFF_JSON_CONF_FILE})
+repo_path=$(jq ".repo_path" -r ${CPDIFF_JSON_CONF_FILE})
+
+if [ "${my_dev}" == "null" ]
+then
+    files=$(cd $repo_path; git diff --name-only FETCH_HEAD)
+else
+    files=$(ssh $my_dev "cd $repo_path; git diff --name-only FETCH_HEAD")
+fi
+
+if [ -z "${files}" ];
+then
+    echo "No files with git diff --name-only found. Nothing to copy.";
+    exit 0;
+fi
+
+for file in ${files[@]}; do
+    echo "Copying file: ${file}..."
+    dest_path=$(getDestinationPath "${file}")
+    echo "Destination path: ${dest_path}";
+
+    if [ "${my_dev}" == "null" ]
+    then
+        cp ${repo_path}/${file} ${dest_path}
+    else
+        scp ${my_dev}:${repo_path}/${file} ${dest_path}
+    fi
+done
