@@ -1,5 +1,8 @@
 {
   "dev_system": "abhijith@10.81.78.230",
+  "ssh": {
+    "ConnectTimeout": 10
+  },
   "repo_path": "/workspace/",
   "replace_path_patterns": [
     {

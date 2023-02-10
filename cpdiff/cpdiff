@@ -85,7 +85,15 @@ then
     pushd ${repo_path};
     files=$(git diff --name-only FETCH_HEAD)
 else
-    files=$(ssh -o ConnectTimeout=10 $my_dev "cd $repo_path; git diff --name-only FETCH_HEAD")
+    timeout=$(jq ".ssh.ConnectTimeout" -r ${CPDIFF_JSON_CONF_FILE})
+    echo "Gathering list of files to copy (Waiting upto ${timeout}s)...";
+    files=$(ssh -o ConnectTimeout=${timeout} $my_dev "cd $repo_path; git diff --name-only FETCH_HEAD")
+    ret_val=$?
+    if [ "${ret_val}" == "255" ];
+    then
+        echo "Failed to get list of files as unable to connect to ${my_dev} system.";
+        exit 1;
+    fi
 fi
 
 if [ -z "${files}" ];
