@@ -67,7 +67,7 @@ fi
 
 if [ ! -e ${CPDIFF_JSON_CONF_FILE} ]
 then
-    echo "ERROR: Conf file doesn't exist.";
+    echo "ERROR: ${CPDIFF_JSON_CONF_FILE} conf file doesn't exist.";
     echo ""
     exit 1
 fi
@@ -85,7 +85,7 @@ then
     pushd ${repo_path};
     files=$(git diff --name-only FETCH_HEAD)
 else
-    files=$(ssh $my_dev "cd $repo_path; git diff --name-only FETCH_HEAD")
+    files=$(ssh -o ConnectTimeout=10 $my_dev "cd $repo_path; git diff --name-only FETCH_HEAD")
 fi
 
 if [ -z "${files}" ];
