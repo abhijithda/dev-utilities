@@ -1,7 +1,8 @@
 # A tool to get MAC addresses of vCenter VMs
 
 param(
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory=$true)]
+    [String]$vCenter,
     [String]$cluster,
     [switch]$allVMs,
     [switch]$help
@@ -49,11 +50,11 @@ Function Write-Log {
 }
 
 Function Connect_VIServer {
-    # param(
-    #     [Parameter(Mandatory = $true)][Object]$vm_spec
-    # )
+    param(
+        [Parameter(Mandatory = $true)][String]$vCenter
+    )
 
-    $vCenterServer = "rsvdevvc01.rsv.ven.veritas.com"
+    $vCenterServer = $vCenter
     $vCenterUser = ""
     $vCenterUserPassword = ""
     # $vCenterServer = $vm_spec.vsphere_server
@@ -135,7 +136,9 @@ if ($help) {
     exit 0
 }
 
-Connect_VIServer
+if($vcenter){
+    Connect_VIServer $vCenter
+}
 
 if ($cluster){
     Write-Log "Cluster value: $cluster"
