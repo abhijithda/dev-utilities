@@ -1,7 +1,7 @@
 # A tool to get MAC addresses of vCenter VMs
 
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$false)]
     [String]$vCenter,
     [String]$cluster,
     [switch]$allVMs,
