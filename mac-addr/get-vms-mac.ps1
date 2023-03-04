@@ -141,6 +141,8 @@ if ($help) {
 
 if($vcenter){
     Connect_VIServer $vCenter
+} else {
+    Connect_VIServer
 }
 
 if ($prefix){
