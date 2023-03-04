@@ -14,12 +14,12 @@ $verboseLogFile = $myprog+".log"
 
 Function Usage ($env_type) {
     Write-Host
-    Write-Host "${myprog} - A tool to get MAC addresses of vCenter VMs"
+    Write-Host "${myprog} - A tool to list MAC addresses of vCenter VMs"
     Write-Host
     Write-Host "Usage:"
     Write-Host
-    Write-Host "    ${myprog} -vcenter <vCenter> "
-    Write-Host "            [ -prefix <ClusterName> | -allVMs ]"
+    Write-Host "  ${myprog} -vcenter <vCenter> "
+    Write-Host "                [ -prefix <ClusterName> | -allVMs ]"
     Write-Host
     Write-Host "  Where, "
     Write-Host "    vcenter     VMware vCenter FQHN or IP address "
@@ -98,7 +98,7 @@ Function Connect_VIServer {
 
 
 Function GetVMsMac {
-    param(prefix = "prefix") 
+    param($prefix = "prefix") 
     Write-Host "Getting MAC addresses of all nodes of cluster prefix..."
 
     for ($num = 1; $num -le 4; $num++) {
