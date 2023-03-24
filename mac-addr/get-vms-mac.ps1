@@ -1,32 +1,34 @@
 # A tool to get MAC addresses of vCenter VMs
 
 param(
-    [Parameter(Mandatory=$false)]
-    [String]$vCenter,
-    [String]$prefix,
-    [switch]$allVMs,
+    [Parameter(Mandatory = $false)]
+    [String[]]$prefixes,
+    [String[]]$VMs,
+    [String]$interface,
     [switch]$help
 )
 
 $myprog = $MyInvocation.MyCommand.Name
 # Log File
-$verboseLogFile = $myprog+".log"
+$verboseLogFile = $myprog + ".log"
 
 Function Usage ($env_type) {
     Write-Host
-    Write-Host "${myprog} - A tool to list MAC addresses of vCenter VMs"
+    Write-Host "${myprog}"
+    Write-Host "  A tool to get MAC addresses of all nodes of a specified cluster or all VMs that are accessible via specified credentials."
     Write-Host
     Write-Host "Usage:"
     Write-Host
     Write-Host "  ${myprog} -vcenter <vCenter> "
-    Write-Host "                [ -prefix <ClusterName> | -allVMs ]"
+    Write-Host "                [ -prefix <ClusterName> | -VMs ]"
+    Write-Host "                [ -interface <1|2|3...N>]"
     Write-Host
     Write-Host "  Where, "
     Write-Host "    vcenter     VMware vCenter FQHN or IP address "
     Write-Host "    prefix      Informs " ${myprog} " to gets mac addresses of "
     Write-Host "                VMs whose VM name start with prefix, and are in"
     Write-Host "                the format: <prefix>vmNN. Where, NN is 01-04."
-    Write-Host "    allVMs      Displays MAC addresses of all VMs."
+    Write-Host "    VMs         Displays MAC addresses of specified VMs."
     Write-Host
 }
 
@@ -35,7 +37,7 @@ Function Write-Log {
         [Parameter(Mandatory = $true)]
         [String]$Message,
         [switch]$Warning,
-        [switch]$Error,
+        [switch]$ErrorMsg,
         [switch]$Info
     )
     $timeStamp = Get-Date -Format "dd-MM-yyyy hh:mm:ss"
@@ -43,7 +45,7 @@ Function Write-Log {
     if ($Warning) {
         Write-Host -ForegroundColor Yellow " $Message"
     }
-    elseif ($Error) {
+    elseif ($ErrorMsg) {
         Write-Host -ForegroundColor Red " $Message"
     }
     elseif ($Info) {
@@ -98,38 +100,36 @@ Function Connect_VIServer {
 
 
 Function GetVMsMac {
-    param($prefix = "prefix") 
-    Write-Host "Getting MAC addresses of all nodes of cluster prefix..."
+    param(
+        [string[]]$prefixes,
+        [string[]]$VMs,
+        [string]$interface = ""
+    ) 
 
-    for ($num = 1; $num -le 4; $num++) {
-        $vmname = prefix + "vm0" + $num
-        Write-Host "Getting $vmname Network Adapater 2 mac details"
-        Get-NetworkAdapter -VM $vmname -Name "Network Adapter 2"
+    foreach ($prefix in $prefixes) {
+        for ($num = 1; $num -le 4; $num++) {
+            $VMs += $prefix + "vm0" + $num
+        }
     }
-}
+    if ($VMs.Length -eq 0) {
+        # For checking whether anyone else is using a particular IP!
+        Write-Host "Getting VMs list..."
+        $VMs = Get-VM
+    }
+    else {
+        Write-Log "Gettings mac interface $interface details for $VMs..."
+    }
 
-
-Function GetAllVMsMac {
-    # For checking whether anyone else is using a particular IP!
-    Write-Host "Getting VMs list..."
-    $vmslist = Get-VM
-
-    # $vmslist = @("lagoscl01vm01")
-    
-
-    foreach ($vmname in $vmslist) {
+    foreach ($vmname in $VMs) {
         Write-Log "VM: $vmname"
-        Write-Log "Getting $vmname Network Adapater 2 and 6 mac details"
-        Get-NetworkAdapter -VM $vmname -Name "Network Adapter 1" | Out-File -Append -LiteralPath $verboseLogFile
-        Get-NetworkAdapter -VM $vmname -Name "Network Adapter 2" | Out-File -Append -LiteralPath $verboseLogFile
-        Get-NetworkAdapter -VM $vmname -Name "Network Adapter 3" | Out-File -Append -LiteralPath $verboseLogFile
-        Get-NetworkAdapter -VM $vmname -Name "Network Adapter 4" | Out-File -Append -LiteralPath $verboseLogFile
-        Get-NetworkAdapter -VM $vmname -Name "Network Adapter 5" | Out-File -Append -LiteralPath $verboseLogFile
-        Get-NetworkAdapter -VM $vmname -Name "Network Adapter 6" | Out-File -Append -LiteralPath $verboseLogFile
-        Get-NetworkAdapter -VM $vmname -Name "Network Adapter 7" | Out-File -Append -LiteralPath $verboseLogFile
-        Get-NetworkAdapter -VM $vmname -Name "Network Adapter 8" | Out-File -Append -LiteralPath $verboseLogFile
+        Write-Log "Getting $vmname mac details"
+        if ($interface -ne "") {
+            Write-Host "Getting $vmname Network Adapater $interface mac details"
+            Get-NetworkAdapter -VM $vmname -Name "Network Adapter $interface"
+            continue
+        }
+        Get-NetworkAdapter -VM $vmname | Out-File -Append -LiteralPath $verboseLogFile
     }
-
 }
 
 
@@ -139,17 +139,6 @@ if ($help) {
     exit 0
 }
 
-if($vcenter){
-    Connect_VIServer $vCenter
-} else {
-    Connect_VIServer
-}
+Connect_VIServer
+GetVMsMac $prefixes $VMs $interface
 
-if ($prefix){
-    Write-Log "Prefix: $prefix"
-    GetVMsMac $prefix
-} elseif ($allVMs) {
-    GetAllVMsMac
-} else {
-    Usage $env_type
-}
