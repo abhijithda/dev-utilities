@@ -2,7 +2,6 @@
 
 param(
     [Parameter(Mandatory = $false)]
-    [switch]$allVMs,
     [String]$cluster,
     [String[]]$vms,
     [String]$interface,
